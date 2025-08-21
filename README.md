@@ -1,8 +1,10 @@
 ## Modify content
-为了适配工作环境差异的需要，从
-- [Easy-AI-CodeReview](https://github.com/spherical-up/Easy-AI-CodeReview) fork了一份用于修改
-感谢原作者[sunmh207](https://github.com/sunmh207)开源[AI-Codereview-Gitlab](https://github.com/sunmh207/AI-Codereview-Gitlab)，请支持原作者。
-感谢原作者[spherical-up](https://github.com/spherical-up)开源，请支持原作者。
+为了适配工作环境差异的需要，fork和参考了项目：
+- [Easy-AI-CodeReview](https://github.com/spherical-up/Easy-AI-CodeReview) 
+感谢原作者[sunmh207](https://github.com/sunmh207)开源
+- [AI-Codereview-Gitlab](https://github.com/sunmh207/AI-Codereview-Gitlab) fork了一份用于修改，
+感谢原作者[spherical-up](https://github.com/spherical-up)开源
+请支持原作者。
 
 ### 改动点
 1. gitlab v4 api中，较新版本的gitlab的MR的状态使用 `state: "opened", "reopened", "updated"`，项目中的判断条件进行同步修改
