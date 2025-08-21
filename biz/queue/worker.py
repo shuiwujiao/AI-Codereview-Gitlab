@@ -227,19 +227,19 @@ def handle_merge_request_event_v2(webhook_data: dict, gitlab_token: str, gitlab_
             logger.error('Failed to get commits')
             return
         commits_text = ';'.join(commit['title'] for commit in commits)
-        logger.info('commits text: %s', commits_text)
+        logger.debug('commits text: %s', commits_text)
 
         # 获取 diffs/changes
         diffs = handler.get_merge_request_changes()
-        logger.info('origin diffs: %s', diffs)
+        logger.debug('origin diffs: %s', diffs)
 
         # 过滤掉不 review 的文件类型
         diffs = filter_diffs_by_file_types(diffs)
-        logger.info("filter file type diffs: %s", diffs)
+        logger.debug("filter file type diffs: %s", diffs)
 
         # 将diffs拆为每个改动点为一个diff
         diffs = preprocessing_diffs(diffs) # 重新赋值修改新的diffs
-        logger.info("split diffs: %s", diffs)
+        logger.debug("split diffs: %s", diffs)
 
         # 获取 sha: head_sha, base_sha, start_sha，用于定位行内评论的位置
         sha = handler.get_merge_request_sha()
@@ -255,7 +255,12 @@ def handle_merge_request_event_v2(webhook_data: dict, gitlab_token: str, gitlab_
                 diffs_tmp, file_content_tmp = "当前diff为新增文件", "当前diff为新增文件"
             else:
                 file_content = handler.get_gitlab_file_content(branch_type="source_branch", file_path=new_path) # 获取修改后的完整文件内容
-                diffs_tmp, file_content_tmp = diffs, file_content
+                # 文件可能获取失败，需要再判断一次
+                if file_content is None:
+                    file_content = f"源分支文件: {new_path} 获取内容异常，仅使用diff进行review"
+                    logger.error(file_content)
+                else:
+                    diffs_tmp, file_content_tmp = diffs, file_content
             
             # 3. 对获取到的diff文件做限制，如过滤文件大小、截断 【待完成，当前使用token做了限制】
 
@@ -264,6 +269,8 @@ def handle_merge_request_event_v2(webhook_data: dict, gitlab_token: str, gitlab_
             if file_tokens_count >= 10000:
                 logger.debug(f"当前文件tokens为: {file_tokens_count}，超过限制的10k token, 截取改动点前后500行代码作为上下文")
                 file_content_tmp = extract_surrounding_lines(text=file_content, line_number=new_line, context_line_num=500)
+            else:
+                logger.error(f"计算文件{new_path}的tokens异常, 文件内容为: {file_content_tmp}")
 
             # 5. 将单个 prompt: diff + file content 发到 ai review
             review_result = CodeReviewer().review_code_simple(diff, diffs_tmp, file_content_tmp)
@@ -279,7 +286,7 @@ def handle_merge_request_event_v2(webhook_data: dict, gitlab_token: str, gitlab_
                 old_line=old_line,
                 new_line=new_line
             )
-        logger.info(f"Merge Request ai code review all done, its commits: {commits}!")
+        logger.info(f"Merge Request done with ai code review, success!")
 
         # 结果统计到数据库
         # 统计本次新增、删除的代码总数

@@ -43,9 +43,11 @@ class BaseReviewer(abc.ABC):
 
     def call_llm(self, messages: List[Dict[str, Any]]) -> str:
         """调用 LLM 进行代码审核"""
-        logger.info(f"向 AI 发送代码 Review 请求, messages: {messages}")
+        logger.info(f"向 AI 发送代码 Review 请求正常")
+        logger.debug(f"向 AI 发送代码 Review 请求, messages: {messages}")
         review_result = self.client.completions(messages=messages)
-        logger.info(f"收到 AI 返回结果: {review_result}")
+        logger.info(f"收到 AI 返回结果正常")
+        logger.debug(f"收到 AI 返回结果: {review_result}")
         return review_result
 
     @abc.abstractmethod
