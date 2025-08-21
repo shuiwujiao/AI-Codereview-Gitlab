@@ -5,7 +5,7 @@ services:
       context: .
       dockerfile: Dockerfile
       target: app
-    image: shuiwujiao/AI-Codereview-Gitlab/ai-codereview-gitlab:1.0.0
+    image: shuiwujiao/ai-codereview-gitlab:1.0.0
     ports:
       - "5001:5001"
       - "5002:5002"
@@ -24,7 +24,7 @@ services:
       context: .
       dockerfile: Dockerfile
       target: worker
-    image: shuiwujiao/AI-Codereview-Gitlab/ai-codereview-gitlab:1.0.0-worker
+    image: shuiwujiao/ai-codereview-gitlab:1.0.0-worker
     volumes_from:
       - app
     env_file:
@@ -42,7 +42,7 @@ services:
 #      context: .
 #      dockerfile: Dockerfile
 #      target: worker
-#    image: shuiwujiao/AI-Codereview-Gitlab/ai-codereview-gitlab:1.0.0-worker
+#    image: shuiwujiao/ai-codereview-gitlab:1.0.0-worker
 #    volumes_from:
 #      - app
 #    env_file:

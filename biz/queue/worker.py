@@ -182,6 +182,8 @@ def handle_merge_request_event_v2(webhook_data: dict, gitlab_token: str, gitlab_
     v2:
     1. 原整个diffs进行review，现拆分为单个diff+diffs+file进行review
     2. 原添加review的评论到MR外层，现添加到具体的变更代码行
+    3. 项目使用的gitlab中的 mr 状态不同，单独适配
+    4. 同步修改了draft（草稿）MR、last_commit_id判断
     '''
     merge_review_only_protected_branches = os.environ.get('MERGE_REVIEW_ONLY_PROTECTED_BRANCHES_ENABLED', '0') == '1'
     try:
@@ -193,10 +195,31 @@ def handle_merge_request_event_v2(webhook_data: dict, gitlab_token: str, gitlab_
             logger.info("Merge Request target branch not match protected branches, ignored.")
             return
 
+        # 仅仅在MR创建或更新时进行Code Review
         # 'updated' 状态的 MR 也先不处理，否则会重复review和评论
         if handler.action not in ['opened', 'reopened']:
             logger.info(f"Merge Request Hook event, action={handler.action}, ignored.")
             return
+
+        # 新增：判断是否为draft（草稿）MR
+        object_attributes = webhook_data.get('object_attributes', {})
+        is_draft = object_attributes.get('draft') or object_attributes.get('work_in_progress')
+        if is_draft:
+            msg = f"[通知] MR为草稿（draft），未触发AI审查。\n项目: {webhook_data['project']['name']}\n作者: {webhook_data['user']['username']}\n源分支: {object_attributes.get('source_branch')}\n目标分支: {object_attributes.get('target_branch')}\n链接: {object_attributes.get('url')}"
+            notifier.send_notification(content=msg)
+            logger.info("MR为draft，仅发送通知，不触发AI review。")
+            return
+
+        # 检查last_commit_id是否已经存在，如果存在则跳过处理
+        last_commit_id = object_attributes.get('last_commit', {}).get('id', '')
+        if last_commit_id:
+            project_name = webhook_data['project']['name']
+            source_branch = object_attributes.get('source_branch', '')
+            target_branch = object_attributes.get('target_branch', '')
+            
+            if ReviewService.check_mr_last_commit_id_exists(project_name, source_branch, target_branch, last_commit_id):
+                logger.info(f"Merge Request with last_commit_id {last_commit_id} already exists, skipping review for {project_name}.")
+                return
 
         # 获取 MR 的 commits 信息
         commits = handler.get_merge_request_commits()
@@ -206,7 +229,7 @@ def handle_merge_request_event_v2(webhook_data: dict, gitlab_token: str, gitlab_
         commits_text = ';'.join(commit['title'] for commit in commits)
         logger.info('commits text: %s', commits_text)
 
-        # 仅仅在MR创建或更新时进行Code Review
+        # 获取 diffs/changes
         diffs = handler.get_merge_request_changes()
         logger.info('origin diffs: %s', diffs)
 
@@ -282,6 +305,7 @@ def handle_merge_request_event_v2(webhook_data: dict, gitlab_token: str, gitlab_
                 webhook_data=webhook_data,
                 additions=additions,
                 deletions=deletions,
+                last_commit_id=last_commit_id,
             )
         )
 
