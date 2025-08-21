@@ -4,14 +4,22 @@ FROM python:3.10-slim AS base
 # 设置工作目录
 WORKDIR /app
 
+# 替换 Debian Trixie 的 apt 源为阿里云镜像（匹配系统版本） - 关键：1. 删除默认源配置目录 2. 清空并写入阿里云源
+RUN rm -rf /etc/apt/sources.list.d/* \
+    && > /etc/apt/sources.list \
+    && echo "deb http://mirrors.aliyun.com/debian/ trixie main non-free contrib" >> /etc/apt/sources.list \
+    && echo "deb http://mirrors.aliyun.com/debian-security trixie-security main" >> /etc/apt/sources.list \
+    && echo "deb http://mirrors.aliyun.com/debian/ trixie-updates main non-free contrib" >> /etc/apt/sources.list \
+    && echo "deb http://mirrors.aliyun.com/debian/ trixie-backports main non-free contrib" >> /etc/apt/sources.list
+
 # 安装 supervisord 作为进程管理工具
 RUN apt-get update && apt-get install -y --no-install-recommends supervisor && rm -rf /var/lib/apt/lists/*
 
 # 复制项目文件&创建必要的文件夹
 COPY requirements.txt .
 
-# 安装依赖
-RUN pip install --no-cache-dir -r requirements.txt
+# 使用国内镜像源安装依赖，增加超时时间和重试机制
+RUN pip install --no-cache-dir --timeout 300 --retries 3 -i https://pypi.tuna.tsinghua.edu.cn/simple/ -r requirements.txt
 
 RUN mkdir -p log data conf
 COPY biz ./biz

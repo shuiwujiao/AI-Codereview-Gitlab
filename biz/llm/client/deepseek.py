@@ -1,11 +1,12 @@
 import os
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union
 
 from openai import OpenAI
 
 from biz.llm.client.base import BaseClient
 from biz.llm.types import NotGiven, NOT_GIVEN
 from biz.utils.log import logger
+import requests
 
 
 class DeepSeekClient(BaseClient):
@@ -20,7 +21,7 @@ class DeepSeekClient(BaseClient):
 
     def completions(self,
                     messages: List[Dict[str, str]],
-                    model: Optional[str] | NotGiven = NOT_GIVEN,
+                    model: Union[Optional[str], NotGiven] = NOT_GIVEN,
                     ) -> str:
         try:
             model = model or self.default_model

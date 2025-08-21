@@ -1,20 +1,24 @@
 import os
 import re
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union
 
 from ollama import ChatResponse
 from ollama import Client
 
 from biz.llm.client.base import BaseClient
 from biz.llm.types import NotGiven, NOT_GIVEN
+from biz.utils.log import logger
+import requests
 
 
 class OllamaClient(BaseClient):
-    def __init__(self, api_key: str = None):
-        self.default_model = self.default_model = os.getenv("OLLAMA_API_MODEL", "deepseek-r1-8k:14b")
-        self.base_url = os.getenv("OLLAMA_API_BASE_URL", "http://127.0.0.1:11434")
+    """Ollama client for chat models."""
+
+    def __init__(self, api_base_url: str = None):
+        self.api_base_url = api_base_url or os.getenv("OLLAMA_API_BASE_URL", "http://localhost:11434")
+        self.default_model = os.getenv("OLLAMA_API_MODEL", "llama2")
         self.client = Client(
-            host=self.base_url,
+            host=self.api_base_url,
         )
 
     def _extract_content(self, content: str) -> str:
@@ -38,7 +42,7 @@ class OllamaClient(BaseClient):
 
     def completions(self,
                     messages: List[Dict[str, str]],
-                    model: Optional[str] | NotGiven = NOT_GIVEN,
+                    model: Union[Optional[str], NotGiven] = NOT_GIVEN,
                     ) -> str:
         response: ChatResponse = self.client.chat(model or self.default_model, messages)
         content = response['message']['content']

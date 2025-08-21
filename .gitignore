@@ -13,3 +13,4 @@ conf/.env
 __pycache__/
 .cursorignore
 .cursor
+test_*.py

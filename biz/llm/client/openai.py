@@ -1,5 +1,5 @@
 import os
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union
 
 from openai import OpenAI
 
@@ -19,7 +19,7 @@ class OpenAIClient(BaseClient):
 
     def completions(self,
                     messages: List[Dict[str, str]],
-                    model: Optional[str] | NotGiven = NOT_GIVEN,
+                    model: Union[Optional[str], NotGiven] = NOT_GIVEN,
                     ) -> str:
         model = model or self.default_model
         completion = self.client.chat.completions.create(
