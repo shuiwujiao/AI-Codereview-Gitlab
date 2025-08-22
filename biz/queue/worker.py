@@ -237,7 +237,7 @@ def handle_merge_request_event_v2(webhook_data: dict, gitlab_token: str, gitlab_
         diffs = filter_diffs_by_file_types(diffs)
         logger.debug("filter file type diffs: %s", diffs)
 
-        # 将diffs拆为每个改动点为一个diff
+        # 将diffs拆为每个改动点为一个dif（原本的diffs是以文件为中心的：一个文件对应多个改动，这里拆分为以改动为中心，一个改动对应一个文件）
         diffs = preprocessing_diffs(diffs) # 重新赋值修改新的diffs
         logger.debug("split diffs: %s", diffs)
 
@@ -250,30 +250,28 @@ def handle_merge_request_event_v2(webhook_data: dict, gitlab_token: str, gitlab_
             new_path = diff.get("new_path")
             old_line, new_line = extract_line_numbers(diff) # 获取添加评论的行号
 
-            # 2. 判断是否为新增文件，如果是新增的文件，则不需要传入diffs、file_content，因为diff就是完整内容
+            # 2. 判断是否为新增文件，如果是新增的文件，则不需要传入file_content，因为file_content就是完整的diff
             if diff.get("new_file") == True or diff.get("new_file") == "true":
-                diffs_tmp, file_content_tmp = "当前diff为新增文件", "当前diff为新增文件"
+                file_content = "当前diff为新增文件" # file_content = diff
             else:
                 file_content = handler.get_gitlab_file_content(branch_type="source_branch", file_path=new_path) # 获取修改后的完整文件内容
                 # 文件可能获取失败，需要再判断一次
                 if file_content is None:
                     file_content = f"源分支文件: {new_path} 获取内容异常，仅使用diff进行review"
                     logger.error(file_content)
-                else:
-                    diffs_tmp, file_content_tmp = diffs, file_content
-            
+
             # 3. 对获取到的diff文件做限制，如过滤文件大小、截断 【待完成，当前使用token做了限制】
 
             # 4. 分析文件内容对应的token，如果超过限制，则取改动点前后 500 行的代码作为上下文传递给 ai，大概是 8-10k token
-            file_tokens_count = CodeReviewer().count_tokens(text=file_content_tmp)
-            if file_tokens_count >= 10000:
+            file_tokens_count = CodeReviewer().count_tokens(text=file_content)
+            if file_tokens_count is None or file_tokens_count >= 10000: # 如果对应的llm没有实现 .count_tokens() 方法，则默认截断文本
                 logger.debug(f"当前文件tokens为: {file_tokens_count}，超过限制的10k token, 截取改动点前后500行代码作为上下文")
-                file_content_tmp = extract_surrounding_lines(text=file_content, line_number=new_line, context_line_num=500)
+                file_content = extract_surrounding_lines(text=file_content, line_number=new_line, context_line_num=500)
             else:
-                logger.error(f"计算文件{new_path}的tokens异常, 文件内容为: {file_content_tmp}")
+                logger.error(f"计算文件{new_path}的tokens异常, 文件内容为: {file_content}")
 
-            # 5. 将单个 prompt: diff + file content 发到 ai review
-            review_result = CodeReviewer().review_code_simple(diff, diffs_tmp, file_content_tmp)
+            # 5. 将单个 prompt: diff + diffs + file content 发到 ai review
+            review_result = CodeReviewer().review_code_simple(diff, diffs, file_content)
 
             # 6. 添加评论
             handler.add_merge_request_discussions_on_row(
