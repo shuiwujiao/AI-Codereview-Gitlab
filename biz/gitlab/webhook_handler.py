@@ -416,17 +416,10 @@ class MergeRequestHandler:
         # Latest URL: https://docs.gitlab.com/api/discussions/#create-a-new-thread-in-the-merge-request-diff
         # Local URL: :4000/14.10/ee/api/discussions.html#create-new-merge-request-thread
 
-        # 获取GitLab Token（优先级：请求头 > 环境变量 ）
-        private_token = request.headers.get('X-Gitlab-Token') or os.getenv('GITLAB_ACCESS_TOKEN')
-        if not private_token:
-            # 可以根据实际场景选择返回None、空字符串或其他合适的值
-            logger.error("Get GITLAB_ACCESS_TOKEN is None, please check env.")
-            return None
-        
         url = f"{self.gitlab_url}/api/v4/projects/{self.project_id}/merge_requests/{self.merge_request_iid}/discussions"
         
         headers = {
-            "Private-Token": private_token,
+            "Private-Token": self.gitlab_token,
             "Content-Type": "application/json"
         }
         
@@ -502,12 +495,6 @@ class MergeRequestHandler:
         Returns:
             文件内容字符串；获取失败则返回None
         """
-        # 获取GitLab Token（优先级：请求头 > 环境变量 ）
-        private_token = request.headers.get('X-Gitlab-Token') or os.getenv('GITLAB_ACCESS_TOKEN')
-        if not private_token:
-            # 可以根据实际场景选择返回None、空字符串或其他合适的值
-            logger.error("Get GITLAB_ACCESS_TOKEN is None, please check env.")
-            return None
         # GitLab API端点：获取文件内容
         # 文档：https://docs.gitlab.com/ee/api/repository_files.html#get-file-from-repository
         url = f"{self.gitlab_url}/api/v4/projects/{self.project_id}/repository/files/{requests.utils.quote(file_path, safe='')}/raw"
@@ -526,7 +513,7 @@ class MergeRequestHandler:
         }
         
         headers = {
-            "Private-Token": private_token
+            "Private-Token": self.gitlab_token
         }
         
         try:

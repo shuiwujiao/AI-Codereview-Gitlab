@@ -268,7 +268,7 @@ def handle_merge_request_event_v2(webhook_data: dict, gitlab_token: str, gitlab_
                 logger.debug(f"当前文件tokens为: {file_tokens_count}，超过限制的10k token, 截取改动点前后500行代码作为上下文")
                 file_content = extract_surrounding_lines(text=file_content, line_number=new_line, context_line_num=500)
             else:
-                logger.error(f"计算文件{new_path}的tokens异常, 文件内容为: {file_content}")
+                logger.info(f"文件{new_path}的tokens为: {file_tokens_count}")
 
             # 5. 将单个 prompt: diff + diffs + file content 发到 ai review
             review_result = CodeReviewer().review_code_simple(diff, diffs, file_content)
