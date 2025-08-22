@@ -11,12 +11,14 @@
 
 2. 增加`.proto`、`.yml`文件的review提示词
 
-3. 使用`changes`、`diffs`、`compare`三种方式获取变更内容的坑
-`/projects/:id/merge_requests/:merge_request_iid/changes` 接口`gitlab`后续会弃用，切换到`diffs`接口，但是当前项目`gitlab`版本不支持`diffs`接口（已检查对应版本的api文档），使用`sha+compare`接口替代`diffs`接口；不使用`changes`的原因是后续版本的`gitlab`会弃用`changes`接口，同时需要将`comment`添加到具体的`diff`行（这个改动目前只改了 MR，后续`Push`的也需要修改）
-    - 这里有个坑，无论直接使用`/projects/:id/merge_requests/:merge_request_iid/changes`接口，还是使用替代方案的`/projects/:id/repository/compare?from={base_sha}&to={head_sha}`接口，都无法获取新增文件的`diff`（转了一圈回到原点了属于是），针对这个问题，查看了API文档，`changes`文档中说明使用`?access_raw_diffs=true`参数，可以禁用 `diff` 内容的截断机制（即使超过默认大小限制，也会返回完整内容）
-    - 对于`changes`接口后续`gitlab`版本会弃用的问题，对当前项目环境无影响，因此暂不处理，新版本`gitlab`直接使用封装的`diffs`方法即可
+3. 使用`changes`、`diffs`、`compare`三种方式获取变更内容
+    - 查看接口文档时，`gitlab`官方文档提示`/projects/:id/merge_requests/:merge_request_iid/changes` 接口后续会弃用，需切换到`diffs`接口
+    - 但是当前项目`gitlab`版本不支持`diffs`接口（从网页访问`project/brunch/-/merge_requests/:merge_request_iid/diffs`是有数据的，但是使用api: `/projects/:id/merge_requests/:merge_request_iid/diffs`确获取不到数据，从Gitlab官方查询api文档发现该api是16.10才开始提供的，并且查看14.10版本的gitlab api doc确实是没有相关接口的说明）
+    - 同时需要将`comment`添加到具体的`diff`行（这个改动目前只改了 MR，后续`Push`的也需要修改），故想要使用`sha+compare`接口替代`diffs`/`changes`接口
+    
+    但是这里有个坑，无论直接使用`/projects/:id/merge_requests/:merge_request_iid/changes`接口，还是使用替代方案的`/projects/:id/repository/compare?from={base_sha}&to={head_sha}`接口，都无法获取新增文件的`diff`（转了一圈回到原点了属于是），针对这个问题，查看了API文档，`changes`文档中说明使用`?access_raw_diffs=true`参数，可以禁用 `diff` 内容的截断机制（即使超过默认大小限制，也会返回完整内容）
+    - 对于`changes`接口后续`gitlab`版本会弃用的问题，对当前项目环境无影响，因此暂不处理，如果是新版本`gitlab`，直接使用封装的`diffs`方法即可
     - 使用`changes`接口仍需注意变更特别多的场景（如3000+行变更，暂未测试），仍然可能由于分页导致`diff`被截断等场景，需要测试
-    - 【方案备注】从网页访问`project/brunch/-/merge_requests/:merge_request_iid/diffs`是有数据的，但是使用api: `/projects/:id/merge_requests/:merge_request_iid/diffs`确获取不到数据，目前是看14.10版本的gitlab doc确实是没有相关接口的说明，很奇怪
 
 4. review的语料（进行中）：
   当前：使用的是`diffs + 提交信息`，直接将diffs作为review的语料
