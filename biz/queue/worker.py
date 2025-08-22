@@ -230,21 +230,23 @@ def handle_merge_request_event_v2(webhook_data: dict, gitlab_token: str, gitlab_
         logger.debug('commits text: %s', commits_text)
 
         # 获取 diffs/changes
-        diffs = handler.get_merge_request_changes()
-        logger.debug('origin diffs: %s', diffs)
+        diffs_origin = handler.get_merge_request_changes()
+        logger.debug('origin diffs: %s', diffs_origin)
 
         # 过滤掉不 review 的文件类型
-        diffs = filter_diffs_by_file_types(diffs)
-        logger.debug("filter file type diffs: %s", diffs)
+        diffs_filter = filter_diffs_by_file_types(diffs_origin)
+        logger.debug("filter file type diffs: %s", diffs_filter)
 
         # 将diffs拆为每个改动点为一个dif（原本的diffs是以文件为中心的：一个文件对应多个改动，这里拆分为以改动为中心，一个改动对应一个文件）
-        diffs = preprocessing_diffs(diffs) # 重新赋值修改新的diffs
-        logger.debug("split diffs: %s", diffs)
+        diffs_split = preprocessing_diffs(diffs_filter) # 重新赋值修改新的diffs
+        logger.debug("split diffs: %s", diffs_split)
+
+        logger.info(f"本次变更{len(diffs_origin)}个文件，过滤类型后共{len(diffs_filter)}个文件，共{len(diffs_split)}个改动点需要review.")
 
         # 获取 sha: head_sha, base_sha, start_sha，用于定位行内评论的位置
         sha = handler.get_merge_request_sha()
         # 0. 对每一个改动点进行语料补充，并提交ai review
-        for diff in diffs:
+        for diff in diffs_split:
             # 1. 提取文件路径、行号用于添加评论
             old_path = diff.get("old_path")
             new_path = diff.get("new_path")
@@ -270,8 +272,8 @@ def handle_merge_request_event_v2(webhook_data: dict, gitlab_token: str, gitlab_
             else:
                 logger.info(f"文件{new_path}的tokens为: {file_tokens_count}")
 
-            # 5. 将单个 prompt: diff + diffs + file content 发到 ai review
-            review_result = CodeReviewer().review_code_simple(diff, diffs, file_content)
+            # 5. 将单个 prompt: diff + diffs/diffs_filter + file content 发到 ai review
+            review_result = CodeReviewer().review_code_simple(diff, diffs_filter, file_content)
 
             # 6. 添加评论
             handler.add_merge_request_discussions_on_row(
@@ -290,7 +292,7 @@ def handle_merge_request_event_v2(webhook_data: dict, gitlab_token: str, gitlab_
         # 统计本次新增、删除的代码总数
         additions = 0
         deletions = 0
-        for item in diffs:
+        for item in diffs_origin:
             additions += item.get('additions', 0)
             deletions += item.get('deletions', 0)
 

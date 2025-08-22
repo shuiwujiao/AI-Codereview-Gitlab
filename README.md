@@ -13,7 +13,8 @@
 
 3. 使用`changes`、`diffs`、`compare`三种方式获取变更内容
     - 查看接口文档时，`gitlab`官方文档提示`/projects/:id/merge_requests/:merge_request_iid/changes` 接口后续会弃用，需切换到`diffs`接口
-    - 但是当前项目`gitlab`版本不支持`diffs`接口（从网页访问`project/brunch/-/merge_requests/:merge_request_iid/diffs`是有数据的，但是使用api: `/projects/:id/merge_requests/:merge_request_iid/diffs`确获取不到数据，从Gitlab官方查询api文档发现该api是16.10才开始提供的，并且查看14.10版本的gitlab api doc确实是没有相关接口的说明）
+    - 但是当前项目`gitlab`版本不支持`diffs`接口（从网页访问`project/brunch/-/merge_requests/:merge_request_iid/diffs`是有数据的，但是使用api: `/projects/:id/merge_requests/:merge_request_iid/diffs`确获取不到数据，从Gitlab官方查询api文档发现该api是16.10才开始提供的，并且查看14.10版本的gitlab api doc确实是没有相关接口的说明），这里被各种来源信息误导了
+    ![alt text](./doc/img/gitlab_api_doc_diffs.png)
     - 同时需要将`comment`添加到具体的`diff`行（这个改动目前只改了 MR，后续`Push`的也需要修改），故想要使用`sha+compare`接口替代`diffs`/`changes`接口
     
     但是这里有个坑，无论直接使用`/projects/:id/merge_requests/:merge_request_iid/changes`接口，还是使用替代方案的`/projects/:id/repository/compare?from={base_sha}&to={head_sha}`接口，都无法获取新增文件的`diff`（转了一圈回到原点了属于是），针对这个问题，查看了API文档，`changes`文档中说明使用`?access_raw_diffs=true`参数，可以禁用 `diff` 内容的截断机制（即使超过默认大小限制，也会返回完整内容）
@@ -68,6 +69,7 @@
 10. 因为使用的是外网专线，需要监控/控制流量
 11. 日志调整和优化、关debug日志
 12. 考虑[把整个项目作为基础信息，再去ai审查代码](https://github.com/sunmh207/AI-Codereview-Gitlab/issues/10)
+13. 删除的文件不要进行review（从获取file_content能够看到是空的）
 
 ### 自测
 
