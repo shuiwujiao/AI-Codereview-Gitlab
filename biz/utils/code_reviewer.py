@@ -408,11 +408,11 @@ class CodeReviewer(BaseReviewer):
         messages = [
             {
                 "role": "system",
-                "content": "你是一位资深编程专家，gitlab的commit代码变更将以git diff 字符串的形式提供，对应的完整文件内容也将一同提供。然后，以精炼的语言指出存在的问题和修改意见，避免长篇大论和过度发散。如果你觉得必要的情况下，可直接给出关键修改内容，否则只给出问题和修改意见。你的反馈内容必须使用严谨的markdown格式，使用中文回答并控制在五百字以内。"
+                'content': '你是资深编程专家，针对提供的git diff和完整文件，仅指出重大代码问题（安全漏洞、逻辑错误、算法低效、重复代码等）。反馈需：1. 极致精简，直击要害；2. 建议具体且有洞见；3. 忽略类型提示、文档及注释问题；4. 用严谨Markdown格式（仅必要分级）5. 只给出问题和修改意见，不需要提供修改示例代码、总结；6. 中文回答，严格控制在200字内。回答模板参考： 1. **XX问题**\n   - **问题描述**: \n   - **影响**: \n   - **建议**: '
             },
             {
                 "role": "user",
-                "content": f"请review这部分代码变更：\n 1. 请只对这一个git diff进行code review问题分析和提供修改意见：{diff} \n 2. 作为上下文参考，完整的文件内容为：\n {file_content} \n 这部分仅作为代码逻辑补充，无需code review \n 3. 作为上下文参考，针对该文件完整的git diff为：\n {diffs}\n 这部分仅作为代码逻辑补充，无需code review",
+                "content": f"请专注review以下特定代码变更：\n【需审查的单个diff】：{diff}\n\n以下内容仅作为上下文参考，无需review，也无需提出任何问题或意见：\n1. 完整文件内容：{file_content}\n2. 该文件的全部git diff：{diffs}\n\n请仅针对【需审查的单个diff】分析代码问题并提供修改意见，忽略所有参考内容中的代码细节。"
             },
         ]
         return self.call_llm(messages)
