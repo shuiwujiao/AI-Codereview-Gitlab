@@ -36,6 +36,7 @@ def filter_changes(changes: list):
 def filter_diffs_by_file_types(diffs: list):
     '''
     过滤数据，只保留支持的文件类型，保留所有字段信息
+    同时过滤掉删除的文件（只是清空内容的不算）
     diffs、changes接口返回的列表通用
     '''
     # 从环境变量中获取支持的文件扩展名

@@ -255,7 +255,7 @@ def liveness_check():
     try:
         from biz.service.review_service import ReviewService
         from biz.utils.queue import handle_queue
-        logger.debug("Core business dependencies are available.")
+        # logger.debug("Core business dependencies are available.")
     except ImportError as e:
         return jsonify({
             "status": "dead",

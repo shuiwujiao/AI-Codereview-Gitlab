@@ -233,14 +233,14 @@ def handle_merge_request_event_v2(webhook_data: dict, gitlab_token: str, gitlab_
         diffs_origin = handler.get_merge_request_changes()
         logger.debug('origin diffs: %s', diffs_origin)
 
-        # 过滤掉不 review 的文件类型
+        # 过滤掉不 review 的文件类型，以及删除的文件
         diffs_filter = filter_diffs_by_file_types(diffs_origin)
         logger.debug("filter file type diffs: %s", diffs_filter)
 
-        # 将diffs拆为每个改动点为一个dif（原本的diffs是以文件为中心的：一个文件对应多个改动，这里拆分为以改动为中心，一个改动对应一个文件）
-        diffs_split = preprocessing_diffs(diffs_filter) # 重新赋值修改新的diffs
-        logger.debug("split diffs: %s", diffs_split)
-
+        ## 将diffs拆为每个改动点为一个diff（原本的diffs是以文件为中心的：一个文件对应多个改动，这里拆分为以改动为中心，一个改动对应一个文件）
+        # diffs_split = preprocessing_diffs(diffs_filter) # 重新赋值修改新的diffs
+        # logger.debug("split diffs: %s", diffs_split)
+        diffs_split = diffs_filter # 注释掉拆分改动点的逻辑，使用单文件review
         logger.info(f"本次变更{len(diffs_origin)}个文件，过滤类型后共{len(diffs_filter)}个文件，共{len(diffs_split)}个改动点需要review.")
 
         # 获取 sha: head_sha, base_sha, start_sha，用于定位行内评论的位置
@@ -273,7 +273,8 @@ def handle_merge_request_event_v2(webhook_data: dict, gitlab_token: str, gitlab_
                 logger.info(f"文件{new_path}的tokens为: {file_tokens_count}")
 
             # 5. 将单个 prompt: diff + diffs/diffs_filter + file content 发到 ai review
-            review_result = CodeReviewer().review_code_simple(diff, diffs_filter, file_content)
+            # review_result = CodeReviewer().review_code_simple(diff, diffs_filter, file_content)
+            review_result = CodeReviewer().review_code_simple_v2(diff, file_content)
 
             # 6. 添加评论
             handler.add_merge_request_discussions_on_row(
